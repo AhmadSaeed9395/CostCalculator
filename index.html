@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تطبيق حساب البنود</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="dashboardWrapper" style="margin-right:0;">
+    <header id="mainHeader">
+      <span>شَوْن</span>
+    </header>
+    <main id="mainContent">
+      <div class="collapsible-card collapsed">
+        <div class="collapsible-header">المشروع</div>
+        <div class="collapsible-content">
+          <section id="projectSection">
+            <div class="project-existing">
+              <label for="projectSelect" title="اختر مشروعاً للعمل عليه">المشاريع الموجودة:</label>
+              <select id="projectSelect" title="قائمة المشاريع المتاحة" style="width:180px;"></select>
+            </div>
+            <div class="project-new">
+              <label for="newProjectName" title="أدخل اسم مشروع جديد">مشروع جديد:</label>
+              <input type="text" id="newProjectName" placeholder="اسم مشروع جديد" title="اسم المشروع الجديد">
+              <button id="createProjectBtn" title="إنشاء مشروع جديد">إنشاء مشروع</button>
+            </div>
+          </section>
+        </div>
+      </div>
+      <div class="collapsible-card collapsed">
+        <div class="collapsible-header">أسعار الموارد</div>
+        <div class="collapsible-content">
+          <section id="pricesSection" class="hidden">
+            <details>
+              <summary>خامات</summary>
+              <table id="priceTableRawMaterials">
+                <thead>
+                  <tr>
+                    <th>الخامة</th>
+                    <th>الوحدة</th>
+                    <th>التكلفة</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </details>
+            <details>
+              <summary>مصنعيـات</summary>
+              <table id="priceTableWorkmanship">
+                <thead>
+                  <tr>
+                    <th>المورد</th>
+                    <th>الوحدة</th>
+                    <th>السعر</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </details>
+            <details>
+              <summary>عمالة</summary>
+              <table id="priceTableLabor">
+                <thead>
+                  <tr>
+                    <th>المورد</th>
+                    <th>الوحدة</th>
+                    <th>السعر</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </details>
+            <button id="savePricesBtn" title="حفظ الأسعار الحالية">حفظ الأسعار</button>
+            <button id="resetPricesBtn" title="إعادة الأسعار الافتراضية">إعادة للأسعار الافتراضية</button>
+          </section>
+        </div>
+      </div>
+      <div class="collapsible-card collapsed">
+        <div class="collapsible-header">حساب تكلفة بند</div>
+        <div class="collapsible-content">
+          <section id="itemCalcSection" class="hidden">
+            <div class="card cost-estimation-card">
+              <div class="step-block">
+                <h3 class="step-title">اختيار البند الرئيسي</h3>
+                <select id="mainItemSelect" title="قائمة البنود الرئيسية" style="width:280px;"><option value="">-- اختر --</option></select>
+              </div>
+              <div class="step-block">
+                <h3 class="step-title">اختيار البند الفرعي</h3>
+                <select id="itemSelect" disabled title="قائمة البنود الفرعية" style="width:280px;"><option value="">-- اختر --</option></select>
+              </div>
+              <div class="step-block">
+                <h3 class="step-title">إدخال الكمية</h3>
+                <input type="number" id="itemQuantity" min="0" placeholder="0" title="الكمية المطلوبة" style="width:120px;">
+              </div>
+              <button id="calculateBtn" title="حساب تكلفة البند" class="main-action-btn">حساب التكلفة</button>
+              <div id="miniSummaryCard" class="mini-summary-card hidden">
+                <div><b>البند:</b> <span id="miniSummaryItem"></span></div>
+                <div><b>الكمية:</b> <span id="miniSummaryQty"></span></div>
+                <div><b>إجمالي التكلفة:</b> <span id="miniSummaryTotal"></span> جنيه</div>
+              </div>
+              <div id="resultSection" class="hidden">
+                <h3 class="step-title">تفاصيل الموارد</h3>
+                <table id="itemDetailsTable">
+                  <thead>
+                    <tr>
+                      <th>المورد</th>
+                      <th>الوحدة</th>
+                      <th>الكمية لكل وحدة</th>
+                      <th>معدل الفرد للوحدة</th>
+                      <th>الكمية المطلوبة</th>
+                      <th>السعر</th>
+                      <th>التكلفة</th>
+                      <th>تعديل</th>
+                    </tr>
+                  </thead>
+                  <tbody id="resultTableBody"></tbody>
+                </table>
+                <div class="sticky-summary">
+                  <strong>التكلفة الإجمالية للبند:</strong> <span id="totalCost">0</span> جنيه
+                </div>
+                <button id="resetRatesBtn" class="hidden" title="إعادة معدلات الفرد الافتراضية">إعادة معدلات الفرد الافتراضية</button>
+                <button id="saveItemBtn" title="حفظ البند">حفظ البند</button>
+                <button id="updateSavedItemBtn" class="hidden" title="حفظ التعديل">حفظ التعديل</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+      <div class="collapsible-card collapsed">
+        <div class="collapsible-header">بيانات المشروع</div>
+        <div class="collapsible-content">
+          <section id="savedItemsSection" class="hidden">
+            <table id="savedItemsTable">
+              <thead>
+                <tr>
+                  <th>البند</th>
+                  <th>الكمية</th>
+                  <th>التكلفة</th>
+                  <th>إجراءات</th>
+                  <th>تعديل</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+            <p><span id="projectTotal">0</span></p>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="resources-data.js"></script>
+  <script src="items.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
