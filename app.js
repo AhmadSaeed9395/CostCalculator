@@ -8,7 +8,6 @@ resourcesList.forEach(({ resource }) => {
 const projectSelect = document.getElementById("projectSelect");
 const newProjectName = document.getElementById("newProjectName");
 const createProjectBtn = document.getElementById("createProjectBtn");
-const pricesSection = document.getElementById("pricesSection");
 const priceTableBody = document.querySelector("#priceTable tbody");
 const savePricesBtn = document.getElementById("savePricesBtn");
 const resetPricesBtn = document.getElementById("resetPricesBtn");
@@ -305,14 +304,12 @@ projectSelect.addEventListener("change", () => {
 function updateSections() {
   const name = projectSelect.value;
   if (!name) {
-    pricesSection.classList.add("hidden");
     document.getElementById("itemCalcSection").classList.add("hidden");
     document.getElementById("savedItemsSection").classList.add("hidden");
   } else {
-    pricesSection.classList.remove("hidden");
     document.getElementById("itemCalcSection").classList.remove("hidden");
-    // البنود المحفوظة تظهر فقط إذا كان هناك بنود
     loadSavedItems();
+    focusFirstInput('itemCalcSection');
   }
 }
 
@@ -794,21 +791,6 @@ function focusFirstInput(sectionId) {
   const input = section.querySelector('input, select');
   if (input) setTimeout(() => input.focus(), 200);
 }
-// Call focusFirstInput when showing each section
-function updateSections() {
-  const name = projectSelect.value;
-  if (!name) {
-    pricesSection.classList.add("hidden");
-    document.getElementById("itemCalcSection").classList.add("hidden");
-    document.getElementById("savedItemsSection").classList.add("hidden");
-  } else {
-    pricesSection.classList.remove("hidden");
-    document.getElementById("itemCalcSection").classList.remove("hidden");
-    loadSavedItems();
-    focusFirstInput('pricesSection');
-    focusFirstInput('itemCalcSection');
-  }
-}
 
 // --- Export to PDF ---
 // document.getElementById('exportBtn').addEventListener('click', function() {
@@ -926,3 +908,23 @@ function updateProjectSectionUI() {
 }
 document.getElementById('projectSelect').addEventListener('change', updateProjectSectionUI);
 window.addEventListener('DOMContentLoaded', updateProjectSectionUI);
+
+// Tab switching functionality
+document.addEventListener('DOMContentLoaded', function() {
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  const tabContents = document.querySelectorAll('.tab-content');
+  
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      const targetTab = this.getAttribute('data-tab');
+      
+      // Remove active class from all tabs and contents
+      tabBtns.forEach(b => b.classList.remove('active'));
+      tabContents.forEach(c => c.classList.remove('active'));
+      
+      // Add active class to clicked tab and corresponding content
+      this.classList.add('active');
+      document.getElementById(`${targetTab}-tab`).classList.add('active');
+    });
+  });
+});

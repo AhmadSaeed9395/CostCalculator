@@ -29,99 +29,111 @@
         </div>
       </div>
       <div class="collapsible-card collapsed">
-        <div class="collapsible-header">أسعار الموارد</div>
-        <div class="collapsible-content">
-          <section id="pricesSection" class="hidden">
-            <details>
-              <summary>خامات</summary>
-              <table id="priceTableRawMaterials">
-                <thead>
-                  <tr>
-                    <th>الخامة</th>
-                    <th>الوحدة</th>
-                    <th>التكلفة</th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </details>
-            <details>
-              <summary>مصنعيـات</summary>
-              <table id="priceTableWorkmanship">
-                <thead>
-                  <tr>
-                    <th>المورد</th>
-                    <th>الوحدة</th>
-                    <th>السعر</th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </details>
-            <details>
-              <summary>عمالة</summary>
-              <table id="priceTableLabor">
-                <thead>
-                  <tr>
-                    <th>المورد</th>
-                    <th>الوحدة</th>
-                    <th>السعر</th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </details>
-            <button id="savePricesBtn" title="حفظ الأسعار الحالية">حفظ الأسعار</button>
-            <button id="resetPricesBtn" title="إعادة الأسعار الافتراضية">إعادة للأسعار الافتراضية</button>
-          </section>
-        </div>
-      </div>
-      <div class="collapsible-card collapsed">
         <div class="collapsible-header">حساب تكلفة بند</div>
         <div class="collapsible-content">
           <section id="itemCalcSection" class="hidden">
-            <div class="card cost-estimation-card">
-              <div class="step-block">
-                <h3 class="step-title">اختيار البند الرئيسي</h3>
-                <select id="mainItemSelect" title="قائمة البنود الرئيسية" style="width:280px;"><option value="">-- اختر --</option></select>
-              </div>
-              <div class="step-block">
-                <h3 class="step-title">اختيار البند الفرعي</h3>
-                <select id="itemSelect" disabled title="قائمة البنود الفرعية" style="width:280px;"><option value="">-- اختر --</option></select>
-              </div>
-              <div class="step-block">
-                <h3 class="step-title">إدخال الكمية</h3>
-                <input type="number" id="itemQuantity" min="0" placeholder="0" title="الكمية المطلوبة" style="width:120px;">
-              </div>
-              <button id="calculateBtn" title="حساب تكلفة البند" class="main-action-btn">حساب التكلفة</button>
-              <div id="miniSummaryCard" class="mini-summary-card hidden">
-                <div><b>البند:</b> <span id="miniSummaryItem"></span></div>
-                <div><b>الكمية:</b> <span id="miniSummaryQty"></span></div>
-                <div><b>إجمالي التكلفة:</b> <span id="miniSummaryTotal"></span> جنيه</div>
-              </div>
-              <div id="resultSection" class="hidden">
-                <h3 class="step-title">تفاصيل الموارد</h3>
-                <table id="itemDetailsTable">
-                  <thead>
-                    <tr>
-                      <th>المورد</th>
-                      <th>الوحدة</th>
-                      <th>الكمية لكل وحدة</th>
-                      <th>معدل الفرد للوحدة</th>
-                      <th>الكمية المطلوبة</th>
-                      <th>السعر</th>
-                      <th>التكلفة</th>
-                      <th>تعديل</th>
-                    </tr>
-                  </thead>
-                  <tbody id="resultTableBody"></tbody>
-                </table>
-                <div class="sticky-summary">
-                  <strong>التكلفة الإجمالية للبند:</strong> <span id="totalCost">0</span> جنيه
+            <!-- Tab Navigation -->
+            <div class="tab-navigation">
+              <button class="tab-btn active" data-tab="calculation">حساب التكلفة</button>
+              <button class="tab-btn" data-tab="prices">أسعار الموارد</button>
+            </div>
+            
+            <!-- Calculation Tab -->
+            <div id="calculation-tab" class="tab-content active">
+              <div class="card cost-estimation-card">
+                <div class="step-block">
+                  <h3 class="step-title">اختيار البند الرئيسي</h3>
+                  <select id="mainItemSelect" title="قائمة البنود الرئيسية" style="width:280px;"><option value="">-- اختر --</option></select>
                 </div>
-                <button id="resetRatesBtn" class="hidden" title="إعادة معدلات الفرد الافتراضية">إعادة معدلات الفرد الافتراضية</button>
-                <button id="saveItemBtn" title="حفظ البند">حفظ البند</button>
-                <button id="updateSavedItemBtn" class="hidden" title="حفظ التعديل">حفظ التعديل</button>
+                <div class="step-block">
+                  <h3 class="step-title">اختيار البند الفرعي</h3>
+                  <select id="itemSelect" disabled title="قائمة البنود الفرعية" style="width:280px;"><option value="">-- اختر --</option></select>
+                </div>
+                <div class="step-block">
+                  <h3 class="step-title">إدخال الكمية</h3>
+                  <input type="number" id="itemQuantity" min="0" placeholder="0" title="الكمية المطلوبة" style="width:120px;">
+                </div>
+                <button id="calculateBtn" title="حساب تكلفة البند" class="main-action-btn">حساب التكلفة</button>
+                <div id="miniSummaryCard" class="mini-summary-card hidden">
+                  <div><b>البند:</b> <span id="miniSummaryItem"></span></div>
+                  <div><b>الكمية:</b> <span id="miniSummaryQty"></span></div>
+                  <div><b>إجمالي التكلفة:</b> <span id="miniSummaryTotal"></span> جنيه</div>
+                </div>
+                <div id="resultSection" class="hidden">
+                  <h3 class="step-title">تفاصيل الموارد</h3>
+                  <table id="itemDetailsTable">
+                    <thead>
+                      <tr>
+                        <th>المورد</th>
+                        <th>الوحدة</th>
+                        <th>الكمية لكل وحدة</th>
+                        <th>معدل الفرد للوحدة</th>
+                        <th>الكمية المطلوبة</th>
+                        <th>السعر</th>
+                        <th>التكلفة</th>
+                        <th>تعديل</th>
+                      </tr>
+                    </thead>
+                    <tbody id="resultTableBody"></tbody>
+                  </table>
+                  <div class="sticky-summary">
+                    <strong>التكلفة الإجمالية للبند:</strong> <span id="totalCost">0</span> جنيه
+                  </div>
+                  <button id="resetRatesBtn" class="hidden" title="إعادة معدلات الفرد الافتراضية">إعادة معدلات الفرد الافتراضية</button>
+                  <button id="saveItemBtn" title="حفظ البند">حفظ البند</button>
+                  <button id="updateSavedItemBtn" class="hidden" title="حفظ التعديل">حفظ التعديل</button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Prices Tab -->
+            <div id="prices-tab" class="tab-content">
+              <div class="card prices-card">
+                <section id="pricesSection">
+                  <details>
+                    <summary>خامات</summary>
+                    <table id="priceTableRawMaterials" class="compact-table">
+                      <thead>
+                        <tr>
+                          <th>الخامة</th>
+                          <th>الوحدة</th>
+                          <th>التكلفة</th>
+                        </tr>
+                      </thead>
+                      <tbody></tbody>
+                    </table>
+                  </details>
+                  <details>
+                    <summary>مصنعيـات</summary>
+                    <table id="priceTableWorkmanship" class="compact-table">
+                      <thead>
+                        <tr>
+                          <th>المورد</th>
+                          <th>الوحدة</th>
+                          <th>السعر</th>
+                        </tr>
+                      </thead>
+                      <tbody></tbody>
+                    </table>
+                  </details>
+                  <details>
+                    <summary>عمالة</summary>
+                    <table id="priceTableLabor" class="compact-table">
+                      <thead>
+                        <tr>
+                          <th>المورد</th>
+                          <th>الوحدة</th>
+                          <th>السعر</th>
+                        </tr>
+                      </thead>
+                      <tbody></tbody>
+                    </table>
+                  </details>
+                  <div class="prices-actions">
+                    <button id="savePricesBtn" title="حفظ الأسعار الحالية">حفظ الأسعار</button>
+                    <button id="resetPricesBtn" title="إعادة الأسعار الافتراضية">إعادة للأسعار الافتراضية</button>
+                  </div>
+                </section>
               </div>
             </div>
           </section>
