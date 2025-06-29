@@ -50,6 +50,18 @@ function loadSavedItems() {
   const tbody = document.querySelector("#savedItemsTable tbody");
   tbody.innerHTML = "";
   
+  // Show message when table is empty but section is visible
+  if (saved.length === 0) {
+    const emptyRow = document.createElement("tr");
+    emptyRow.innerHTML = `
+      <td colspan="5" style="text-align: center; padding: 20px; color: #888; font-style: italic;">
+        لا توجد بنود محفوظة في هذا المشروع
+        ${deletedItemsStack.length > 0 ? '<br><small style="color: #e6a200;">يمكنك استخدام زر التراجع لإعادة البنود المحذوفة</small>' : ''}
+      </td>
+    `;
+    tbody.appendChild(emptyRow);
+  }
+  
   let totalRawMaterials = 0;
   let totalLabor = 0;
   let totalWorkmanship = 0;
@@ -240,7 +252,8 @@ function loadSavedItems() {
     ${resourcesDetailsHTML}
   `;
   
-  document.getElementById("savedItemsSection").classList.toggle("hidden", saved.length === 0);
+  // Always show the savedItemsSection so the undo button remains visible
+  document.getElementById("savedItemsSection").classList.remove("hidden");
 
   // إضافة مستمعات التعديل
   tbody.querySelectorAll('.editSavedItemBtn').forEach(btn => {
@@ -257,36 +270,117 @@ function loadSavedItems() {
 }
 
 // حذف بند محفوظ
+let deletedItemsStack = [];
+
 window.removeSavedItem = function(idx) {
   const projectName = document.getElementById("projectSelect").value;
   const key = `items_${projectName}`;
   const saved = JSON.parse(localStorage.getItem(key)) || [];
   const item = saved[idx];
+  deletedItemsStack.push({ item, idx, projectName });
   saved.splice(idx, 1);
+  
+  // Always keep the items array in localStorage, even if empty
   localStorage.setItem(key, JSON.stringify(saved));
-  // Always update both the saved items table and the resources summary
+  
   loadSavedItems();
+  showUndoButton();
   showToast('تم حذف البند', 'success');
-  setTimeout(() => {
-    const undoBtn = document.getElementById('undoBtn');
-    if (undoBtn) undoBtn.onclick = undoDelete;
-  }, 100);
 };
 
-function undoDelete() {
-  const projectName = document.getElementById("projectSelect").value;
-  const key = `items_${projectName}`;
-  const saved = JSON.parse(localStorage.getItem(key)) || [];
-  const item = saved[lastDeletedItem.idx];
-  saved.splice(lastDeletedItem.idx, 0, lastDeletedItem.item);
-  localStorage.setItem(key, JSON.stringify(saved));
-  loadSavedItems();
-  showToast('تم التراجع عن الحذف', 'success');
-  lastDeletedItem = null;
+function showUndoButton() {
+  const undoBtn = document.getElementById('undoDeleteBtn');
+  if (deletedItemsStack.length > 0) {
+    undoBtn.style.display = '';
+  } else {
+    undoBtn.style.display = 'none';
+  }
 }
 
-// عرض البنود المحفوظة عند تغيير المشروع
-projectSelect.addEventListener("change", loadSavedItems);
+document.getElementById('undoDeleteBtn').addEventListener('click', function() {
+  if (deletedItemsStack.length > 0) {
+    const lastDeleted = deletedItemsStack.pop();
+    const key = `items_${lastDeleted.projectName}`;
+    const saved = JSON.parse(localStorage.getItem(key)) || [];
+    
+    // Insert the item back at its original position
+    saved.splice(lastDeleted.idx, 0, lastDeleted.item);
+    localStorage.setItem(key, JSON.stringify(saved));
+    
+    // Reload the current project's items
+    loadSavedItems();
+    showToast('تم التراجع عن الحذف', 'success');
+    showUndoButton();
+  }
+});
+
+// Clear undo stack on project change
+projectSelect.addEventListener("change", function() {
+  // Don't clear the undo stack when changing projects
+  // This allows undoing deletions from other projects
+  showUndoButton();
+  
+  // Save last used project
+  localStorage.setItem('lastProject', projectSelect.value);
+  
+  // Update sections and load data
+  updateSections();
+  loadProjectPrices(projectSelect.value);
+  loadSavedItems();
+  
+  // Show/hide delete button based on project selection
+  showDeleteProjectButton();
+});
+
+// Delete project functionality
+function showDeleteProjectButton() {
+  const deleteBtn = document.getElementById('deleteProjectBtn');
+  const selectedProject = projectSelect.value;
+  
+  if (selectedProject && selectedProject !== '') {
+    deleteBtn.style.display = 'flex';
+  } else {
+    deleteBtn.style.display = 'none';
+  }
+}
+
+function deleteProject() {
+  const projectName = projectSelect.value;
+  if (!projectName) {
+    showToast('لم يتم اختيار مشروع للحذف', 'error');
+    return;
+  }
+  
+  // Confirm deletion
+  if (!confirm(`هل أنت متأكد من حذف المشروع "${projectName}"؟\n\nسيتم حذف جميع البيانات المرتبطة به نهائياً.`)) {
+    return;
+  }
+  
+  // Remove project data from localStorage
+  localStorage.removeItem(`project_${projectName}`);
+  localStorage.removeItem(`items_${projectName}`);
+  
+  // Clear undo stack for this project
+  deletedItemsStack = deletedItemsStack.filter(item => item.projectName !== projectName);
+  
+  // Clear last project if it was the deleted one
+  if (localStorage.getItem('lastProject') === projectName) {
+    localStorage.removeItem('lastProject');
+  }
+  
+  // Reload projects and reset selection
+  loadProjects();
+  projectSelect.value = '';
+  updateSections();
+  showDeleteProjectButton();
+  showUndoButton();
+  
+  showToast(`تم حذف المشروع "${projectName}" بنجاح`, 'success');
+}
+
+// Add event listener for delete project button
+document.getElementById('deleteProjectBtn').addEventListener('click', deleteProject);
+
 // عند تحميل الصفحة
 window.addEventListener("DOMContentLoaded", () => {
   initializeApp();
@@ -310,6 +404,12 @@ window.addEventListener("DOMContentLoaded", () => {
       document.getElementById('itemSelect').value = lastSub;
     }
   }
+  
+  // Initialize project section UI
+  updateProjectSectionUI();
+  
+  // Initialize delete project button visibility
+  showDeleteProjectButton();
 });
 
 // تحميل المشاريع المحفوظة
@@ -319,20 +419,25 @@ function loadProjects() {
   projects.forEach(projectKey => {
     const projectName = projectKey.replace("project_", "");
     if (![...projectSelect.options].some(opt => opt.value === projectName)) {
-    const option = document.createElement("option");
-    option.value = projectName;
-    option.textContent = projectName;
-    projectSelect.appendChild(option);
+      const option = document.createElement("option");
+      option.value = projectName;
+      option.textContent = projectName;
+      projectSelect.appendChild(option);
+    }
+  });
+  
+  // Also check for projects that have items but no project_ key
+  const itemKeys = Object.keys(localStorage).filter(key => key.startsWith("items_"));
+  itemKeys.forEach(itemKey => {
+    const projectName = itemKey.replace("items_", "");
+    if (![...projectSelect.options].some(opt => opt.value === projectName)) {
+      const option = document.createElement("option");
+      option.value = projectName;
+      option.textContent = projectName;
+      projectSelect.appendChild(option);
     }
   });
 }
-
-// عند تغيير المشروع
-projectSelect.addEventListener("change", () => {
-  updateSections();
-  loadProjectPrices(projectSelect.value);
-  loadSavedItems();
-});
 
 function updateSections() {
   const name = projectSelect.value;
@@ -556,7 +661,21 @@ function tryInstantCalculation() {
 
 document.getElementById('itemQuantity').addEventListener('input', tryInstantCalculation);
 document.getElementById('mainItemSelect').addEventListener('change', tryInstantCalculation);
-document.getElementById('itemSelect').addEventListener('change', tryInstantCalculation);
+document.getElementById('itemSelect').addEventListener('change', function() {
+  // Save last used sub item
+  localStorage.setItem('lastSubItem', this.value);
+  
+  // Clear quantity and reset calculation
+  document.getElementById('itemQuantity').value = '';
+  document.getElementById('resultTableBody').innerHTML = '';
+  document.getElementById('resultSection').classList.add('hidden');
+  
+  // Clear input errors
+  clearInputErrors();
+  
+  // Try instant calculation
+  tryInstantCalculation();
+});
 
 // البنود الرئيسية
 const mainItemsMap = {
@@ -619,7 +738,22 @@ function loadSubItemsList(main) {
 }
 
 document.getElementById("mainItemSelect").addEventListener("change", function() {
+  // Load sub items list
   loadSubItemsList(this.value);
+  
+  // Save last used main item
+  localStorage.setItem('lastMainItem', this.value);
+  
+  // Clear quantity and reset calculation
+  document.getElementById('itemQuantity').value = '';
+  document.getElementById('resultTableBody').innerHTML = '';
+  document.getElementById('resultSection').classList.add('hidden');
+  
+  // Clear input errors
+  clearInputErrors();
+  
+  // Try instant calculation if possible
+  tryInstantCalculation();
 });
 
 // --- الحفظ التلقائي لأسعار الموارد ---
@@ -762,57 +896,10 @@ function showToast(msg, type = 'info') {
 
 // --- Smart Defaults & Fewer Clicks ---
 // 1. Auto-select last used project on load
-window.addEventListener('DOMContentLoaded', () => {
-  initializeApp();
-  loadMainItemsList();
-  // Auto-select last used project if exists
-  const lastProject = localStorage.getItem('lastProject');
-  if (lastProject && [...projectSelect.options].some(opt => opt.value === lastProject)) {
-    projectSelect.value = lastProject;
-    updateSections();
-    loadProjectPrices(lastProject);
-    loadSavedItems();
-  }
-  // Auto-select last used main/sub item if exists
-  const lastMain = localStorage.getItem('lastMainItem');
-  const lastSub = localStorage.getItem('lastSubItem');
-  if (lastMain && document.getElementById('mainItemSelect')) {
-    document.getElementById('mainItemSelect').value = lastMain;
-    loadSubItemsList(lastMain);
-    if (lastSub && document.getElementById('itemSelect')) {
-      document.getElementById('itemSelect').value = lastSub;
-    }
-  }
-});
-
-// Save last used project on change
-projectSelect.addEventListener('change', () => {
-  localStorage.setItem('lastProject', projectSelect.value);
-  updateSections();
-  loadProjectPrices(projectSelect.value);
-  loadSavedItems();
-});
+// REMOVED: Duplicate DOMContentLoaded listener - already handled above
 
 // Save last used main/sub item on change
-if (document.getElementById('mainItemSelect')) {
-  document.getElementById('mainItemSelect').addEventListener('change', function() {
-    localStorage.setItem('lastMainItem', this.value);
-    loadSubItemsList(this.value);
-    document.getElementById('itemQuantity').value = '';
-    // Reset تفاصيل الموارد table and hide result section
-    document.getElementById('resultTableBody').innerHTML = '';
-    document.getElementById('resultSection').classList.add('hidden');
-  });
-}
-if (document.getElementById('itemSelect')) {
-  document.getElementById('itemSelect').addEventListener('change', function() {
-    localStorage.setItem('lastSubItem', this.value);
-    document.getElementById('itemQuantity').value = '';
-    // Reset تفاصيل الموارد table and hide result section
-    document.getElementById('resultTableBody').innerHTML = '';
-    document.getElementById('resultSection').classList.add('hidden');
-  });
-}
+// REMOVED: Duplicate mainItemSelect listener - consolidated above
 
 // 2. Auto-focus first input in each section when shown
 function focusFirstInput(sectionId) {
@@ -855,8 +942,6 @@ function validateInputs() {
 }
 
 // Remove error highlight on input/change
-mainItemSelect.addEventListener('change', clearInputErrors);
-subItemSelect.addEventListener('change', clearInputErrors);
 itemQuantityInput.addEventListener('input', clearInputErrors);
 
 // Show mini summary card after calculation
@@ -896,8 +981,6 @@ function updateProjectSectionUI() {
   if (projectExisting) projectExisting.style.display = '';
   if (projectNew) projectNew.style.display = '';
 }
-document.getElementById('projectSelect').addEventListener('change', updateProjectSectionUI);
-window.addEventListener('DOMContentLoaded', updateProjectSectionUI);
 
 // Tab switching functionality
 document.addEventListener('DOMContentLoaded', function() {

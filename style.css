@@ -854,3 +854,78 @@ label {
     font-size: 1em;
   }
 }
+
+/* Undo Button Styles */
+.undo-btn {
+  background: #fff8e1;
+  color: #e6a200;
+  border: 2px solid #e6a200;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  padding: 0;
+  font-size: 1.1em;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px #e6a20022;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.undo-btn:hover {
+  background: #e6a200;
+  color: #fff8e1;
+  box-shadow: 0 4px 16px #e6a20044;
+}
+
+/* Project Controls Styles */
+.project-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.delete-project-btn {
+  background: #ff4444;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 40px;
+  box-shadow: 0 2px 8px rgba(255, 68, 68, 0.3);
+  font-weight: bold;
+}
+
+.delete-project-btn:hover {
+  background: #cc0000;
+  transform: scale(1.05);
+  box-shadow: 0 4px 16px rgba(255, 68, 68, 0.4);
+}
+
+.delete-project-btn:active {
+  transform: scale(0.95);
+  box-shadow: 0 1px 4px rgba(255, 68, 68, 0.3);
+}
+
+@media (max-width: 700px) {
+  .project-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+  
+  .delete-project-btn {
+    align-self: flex-end;
+    min-width: 36px;
+    height: 36px;
+    padding: 8px;
+  }
+}
