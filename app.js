@@ -657,40 +657,6 @@ document.querySelectorAll('#priceTableRawMaterials input, #priceTableWorkmanship
   });
 });
 
-// --- Dashboard: عرض المشاريع الأخيرة ---
-function renderDashboardProjects() {
-  const container = document.getElementById('projectsList');
-  if (!container) return; // Exit if element doesn't exist
-  
-  container.innerHTML = '';
-  const projects = Object.keys(localStorage).filter(k => k.startsWith('project_'));
-  if (projects.length === 0) {
-    container.innerHTML = '<div class="card" style="text-align:center;">لا يوجد مشاريع محفوظة بعد.</div>';
-    return;
-  }
-  projects.forEach(key => {
-    const name = key.replace('project_', '');
-    // حساب إجمالي تكلفة البنود المحفوظة
-    const items = JSON.parse(localStorage.getItem(`items_${name}`) || '[]');
-    const total = items.reduce((sum, i) => sum + (i.cost || 0), 0);
-    const card = document.createElement('div');
-    card.className = 'card project-card';
-    card.style.cursor = 'pointer';
-    card.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div>
-          <div style="font-size:1.1em;font-weight:700;">${name}</div>
-          <div style="color:#ffe066;font-size:0.95em;">إجمالي التكلفة: <b>${total.toFixed(2)}</b> جنيه</div>
-        </div>
-        <div style="font-size:2em;">📁</div>
-      </div>
-    `;
-    // (يمكنك إضافة حدث عند الضغط لاحقًا)
-    container.appendChild(card);
-  });
-}
-window.addEventListener('DOMContentLoaded', renderDashboardProjects);
-
 // --- Toast Notification Utility ---
 function showToast(msg, type = 'info') {
   let toast = document.getElementById('toastMsg');
@@ -792,46 +758,6 @@ function focusFirstInput(sectionId) {
   const input = section.querySelector('input, select');
   if (input) setTimeout(() => input.focus(), 200);
 }
-
-// --- Export to PDF ---
-// document.getElementById('exportBtn').addEventListener('click', function() {
-//   const projectName = document.getElementById('projectSelect').value;
-//   if (!projectName) return showToast('اختر مشروعاً أولاً', 'error');
-//   const items = JSON.parse(localStorage.getItem(`items_${projectName}`) || '[]');
-//   if (!items.length) return showToast('لا يوجد بنود محفوظة لهذا المشروع', 'warning');
-//   // Generate PDF using jsPDF
-//   const doc = new window.jspdf.jsPDF({orientation: 'p', unit: 'pt', format: 'a4'});
-//   doc.setFont('Cairo', 'bold');
-//   doc.setFontSize(18);
-//   doc.text(`تقرير المشروع: ${projectName}`, 40, 50, {align: 'right'});
-//   doc.setFontSize(13);
-//   let y = 90;
-//   doc.text('البند', 480, y);
-//   doc.text('الكمية', 350, y);
-//   doc.text('التكلفة', 220, y);
-//   y += 18;
-//   doc.setFont('Cairo', 'normal');
-//   items.forEach(i => {
-//     doc.text(String(i.item), 480, y);
-//     doc.text(String(i.quantity), 350, y);
-//     doc.text(String(i.cost), 220, y);
-//     y += 18;
-//   });
-//   doc.save(`project_${projectName}.pdf`);
-//   showToast('تم تصدير المشروع كملف PDF', 'success');
-// });
-// --- Share Project (download JSON) ---
-// document.getElementById('shareBtn').addEventListener('click', function() {
-//   const projectName = document.getElementById('projectSelect').value;
-//   if (!projectName) return showToast('اختر مشروعاً أولاً', 'error');
-//   const items = JSON.parse(localStorage.getItem(`items_${projectName}`) || '[]');
-//   const blob = new Blob([JSON.stringify(items, null, 2)], {type: 'application/json'});
-//   const a = document.createElement('a');
-//   a.href = URL.createObjectURL(blob);
-//   a.download = `project_${projectName}.json`;
-//   a.click();
-//   showToast('تم تجهيز ملف مشاركة المشروع', 'success');
-// });
 
 // --- UI: Highlight required fields and show mini summary card ---
 const mainItemSelect = document.getElementById('mainItemSelect');

@@ -500,7 +500,7 @@ label {
   }
   
   #mainHeader span {
-    font-size: 1em;
+    font-size: 2.2em;
   }
   
   #mainContent {
@@ -773,4 +773,36 @@ label {
 
 .hidden {
   display: none !important;
+}
+
+/* Sticky main action button on mobile */
+@media (max-width: 700px) {
+  .main-action-btn {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: 100vw;
+    margin: 0 auto 0 auto;
+    z-index: 10;
+    border-radius: 0;
+    box-shadow: 0 -2px 12px #e6a20044;
+  }
+}
+
+/* Touch-friendly table rows */
+@media (max-width: 700px) {
+  th, td {
+    padding: 14px 10px;
+    min-height: 48px;
+    font-size: 1.1em;
+  }
+}
+
+/* Collapse less important info by default on mobile */
+@media (max-width: 700px) {
+  .mini-summary-card {
+    display: none;
+  }
 }
