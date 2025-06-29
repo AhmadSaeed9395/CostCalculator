@@ -8,7 +8,6 @@ resourcesList.forEach(({ resource }) => {
 const projectSelect = document.getElementById("projectSelect");
 const newProjectName = document.getElementById("newProjectName");
 const createProjectBtn = document.getElementById("createProjectBtn");
-const priceTableBody = document.querySelector("#priceTable tbody");
 const savePricesBtn = document.getElementById("savePricesBtn");
 const resetPricesBtn = document.getElementById("resetPricesBtn");
 
@@ -661,6 +660,8 @@ document.querySelectorAll('#priceTableRawMaterials input, #priceTableWorkmanship
 // --- Dashboard: عرض المشاريع الأخيرة ---
 function renderDashboardProjects() {
   const container = document.getElementById('projectsList');
+  if (!container) return; // Exit if element doesn't exist
+  
   container.innerHTML = '';
   const projects = Object.keys(localStorage).filter(k => k.startsWith('project_'));
   if (projects.length === 0) {
