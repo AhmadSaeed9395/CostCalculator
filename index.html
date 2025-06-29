@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>تطبيق حساب البنود</title>
   <link rel="stylesheet" href="style.css">
+  <!-- jsPDF library for PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+  <!-- jsPDF Arabic plugin -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-arabic/dist/jspdf-arabic.min.js"></script>
 </head>
 <body>
   <div id="dashboardWrapper" style="margin-right:0;">
@@ -143,6 +148,9 @@
         <div class="collapsible-header">بيانات المشروع</div>
         <div class="collapsible-content">
           <section id="savedItemsSection" class="hidden">
+            <div class="project-actions">
+              <!-- Removed PDF export button -->
+            </div>
             <table id="savedItemsTable">
               <thead>
                 <tr>

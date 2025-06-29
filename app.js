@@ -288,7 +288,29 @@ function undoDelete() {
 // عرض البنود المحفوظة عند تغيير المشروع
 projectSelect.addEventListener("change", loadSavedItems);
 // عند تحميل الصفحة
-window.addEventListener("DOMContentLoaded", loadSavedItems);
+window.addEventListener("DOMContentLoaded", () => {
+  initializeApp();
+  loadMainItemsList();
+  
+  // Auto-select last used project if exists
+  const lastProject = localStorage.getItem('lastProject');
+  if (lastProject && [...projectSelect.options].some(opt => opt.value === lastProject)) {
+    projectSelect.value = lastProject;
+    updateSections();
+    loadProjectPrices(lastProject);
+    loadSavedItems();
+  }
+  // Auto-select last used main/sub item if exists
+  const lastMain = localStorage.getItem('lastMainItem');
+  const lastSub = localStorage.getItem('lastSubItem');
+  if (lastMain && document.getElementById('mainItemSelect')) {
+    document.getElementById('mainItemSelect').value = lastMain;
+    loadSubItemsList(lastMain);
+    if (lastSub && document.getElementById('itemSelect')) {
+      document.getElementById('itemSelect').value = lastSub;
+    }
+  }
+});
 
 // تحميل المشاريع المحفوظة
 function loadProjects() {
@@ -367,9 +389,29 @@ function loadProjectPrices(projectName) {
     const input = document.createElement("input");
     input.type = "number";
     input.min = 0;
+    input.id = resource;
+    input.name = resource;
+    input.setAttribute('aria-label', `سعر ${resource}`);
     const val = prices[resource];
     input.value = (val && val !== 0) ? val : '';
     input.dataset.resource = resource;
+    
+    // Add event listener for price changes
+    input.addEventListener('change', function() {
+      const projectName = document.getElementById('projectSelect').value;
+      if (!projectName) return;
+      const prices = JSON.parse(localStorage.getItem(`project_${projectName}`)) || {};
+      prices[this.dataset.resource] = parseFloat(this.value) || 0;
+      localStorage.setItem(`project_${projectName}`, JSON.stringify(prices));
+      showToast('✅ تم حفظ السعر مباشرة', 'success');
+      
+      // Update calculation table if it's currently displayed
+      updateCalculationIfVisible();
+      
+      // Update saved items table to reflect new prices
+      updateSavedItemsWithNewPrices();
+    });
+    
     priceCell.appendChild(input);
     tr.appendChild(nameCell);
     tr.appendChild(unitCell);
@@ -402,10 +444,6 @@ resetPricesBtn.addEventListener("click", () => {
 });
 
 // عند تحميل الصفحة
-window.addEventListener("DOMContentLoaded", () => {
-  initializeApp();
-});
-
 function initializeApp() {
   // تفريغ القوائم
   projectSelect.innerHTML = '<option value="">-- اختر --</option>';
@@ -458,7 +496,7 @@ function renderCalculationTable(filtered, quantity, projectPrices) {
       <td>${resource}</td>
       <td>${unit}</td>
       <td>${getDefaultRate(resource)}</td>
-      <td><input type="number" min="0" step="any" value="${quantityPerUnit}" data-idx="${idx}" class="rateInput" style="width:90px"></td>
+      <td><input type="number" min="0" step="any" value="${quantityPerUnit}" data-idx="${idx}" class="rateInput" id="${resource}_rate" name="${resource}_rate" aria-label="معدل ${resource}" style="width:90px"></td>
       <td>${totalQty.toFixed(2)} ${unit}</td>
       <td>${unitPrice.toLocaleString()}</td>
       <td>${cost.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</td>
@@ -584,30 +622,6 @@ document.getElementById("mainItemSelect").addEventListener("change", function() 
   loadSubItemsList(this.value);
 });
 
-// عند تحميل الصفحة
-window.addEventListener("DOMContentLoaded", () => {
-  initializeApp();
-  loadMainItemsList();
-  // Auto-select last used project if exists
-  const lastProject = localStorage.getItem('lastProject');
-  if (lastProject && [...projectSelect.options].some(opt => opt.value === lastProject)) {
-    projectSelect.value = lastProject;
-    updateSections();
-    loadProjectPrices(lastProject);
-    loadSavedItems();
-  }
-  // Auto-select last used main/sub item if exists
-  const lastMain = localStorage.getItem('lastMainItem');
-  const lastSub = localStorage.getItem('lastSubItem');
-  if (lastMain && document.getElementById('mainItemSelect')) {
-    document.getElementById('mainItemSelect').value = lastMain;
-    loadSubItemsList(lastMain);
-    if (lastSub && document.getElementById('itemSelect')) {
-      document.getElementById('itemSelect').value = lastSub;
-    }
-  }
-});
-
 // --- الحفظ التلقائي لأسعار الموارد ---
 function autoSavePrices() {
   const name = projectSelect.value;
@@ -645,16 +659,58 @@ function showAutoSaveMsg() {
 }
 
 // --- Instant Save for Price Table Inputs ---
-document.querySelectorAll('#priceTableRawMaterials input, #priceTableWorkmanship input, #priceTableLabor input').forEach(input => {
-  input.addEventListener('change', function() {
-    const projectName = document.getElementById('projectSelect').value;
-    if (!projectName) return;
-    const prices = JSON.parse(localStorage.getItem(`project_${projectName}`)) || {};
-    prices[this.dataset.resource] = parseFloat(this.value) || 0;
-    localStorage.setItem(`project_${projectName}`, JSON.stringify(prices));
-    showToast('✅ تم حفظ السعر مباشرة', 'success');
+// Event listeners are now set up in loadProjectPrices function for dynamically created inputs
+
+// Function to update calculation table when prices change
+function updateCalculationIfVisible() {
+  const resultSection = document.getElementById('resultSection');
+  if (!resultSection.classList.contains('hidden')) {
+    const itemName = document.getElementById("itemSelect").value;
+    const quantity = parseFloat(document.getElementById("itemQuantity").value);
+    const projectName = document.getElementById("projectSelect").value;
+    
+    if (itemName && !isNaN(quantity) && quantity > 0) {
+      const projectPrices = JSON.parse(localStorage.getItem(`project_${projectName}`)) || {};
+      renderCalculationTable(tempRates, quantity, projectPrices);
+    }
+  }
+}
+
+// Function to update saved items with new prices
+function updateSavedItemsWithNewPrices() {
+  const projectName = document.getElementById("projectSelect").value;
+  if (!projectName) return;
+  
+  const key = `items_${projectName}`;
+  const saved = JSON.parse(localStorage.getItem(key)) || [];
+  const projectPrices = JSON.parse(localStorage.getItem(`project_${projectName}`)) || {};
+  
+  let updated = false;
+  
+  // Recalculate costs for all saved items
+  saved.forEach(item => {
+    const itemResources = itemsList.filter(i => i.item === item.item);
+    let newCost = 0;
+    
+    itemResources.forEach(resource => {
+      const cost = (resource.quantityPerUnit * item.quantity * (projectPrices[resource.resource] || 0));
+      newCost += cost;
+    });
+    
+    // Update cost if it changed
+    if (Math.abs(newCost - item.cost) > 0.01) {
+      item.cost = newCost;
+      updated = true;
+    }
   });
-});
+  
+  // Save updated items if any costs changed
+  if (updated) {
+    localStorage.setItem(key, JSON.stringify(saved));
+    loadSavedItems(); // Refresh the display
+    showToast('🔄 تم تحديث تكاليف البنود المحفوظة', 'success');
+  }
+}
 
 // --- Toast Notification Utility ---
 function showToast(msg, type = 'info') {
