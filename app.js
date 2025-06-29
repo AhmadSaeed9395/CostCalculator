@@ -22,6 +22,14 @@ saveItemBtn.addEventListener("click", () => {
     showToast("يرجى اختيار بند وإدخال كمية صحيحة", 'error');
     return;
   }
+  // Check for missing prices after saving
+  const projectPrices = JSON.parse(localStorage.getItem(`project_${projectName}`)) || {};
+  const filtered = getCurrentItemRates(itemName);
+  let missing = false;
+  filtered.forEach((rowObj) => {
+    let unitPrice = parseFloat(projectPrices[rowObj.resource]);
+    if (isNaN(unitPrice) || unitPrice === 0) missing = true;
+  });
   // Load saved items for this project
   const key = `items_${projectName}`;
   const saved = JSON.parse(localStorage.getItem(key)) || [];
@@ -29,6 +37,9 @@ saveItemBtn.addEventListener("click", () => {
   localStorage.setItem(key, JSON.stringify(saved));
   showToast("تم حفظ البند", 'success');
   loadSavedItems();
+  if (missing) {
+    showToast('⚠️ يوجد مورد أو أكثر بدون سعر! الرجاء مراجعة الأسعار.', 'warning');
+  }
 });
 
 // تحميل البنود المحفوظة
@@ -451,7 +462,6 @@ function renderCalculationTable(filtered, quantity, projectPrices) {
   document.getElementById("totalCost").textContent = `${total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
   document.getElementById("resultSection").classList.remove("hidden");
   warningDiv.textContent = '';
-  if (missing) showToast('⚠️ يوجد مورد أو أكثر بدون سعر! الرجاء مراجعة الأسعار.', 'warning');
 
   // Update the sticky summary label
   document.querySelector('.sticky-summary').innerHTML = `<strong>التكلفة الإجمالية :</strong> <span id="totalCost">${total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span> جنيه`;
@@ -725,12 +735,18 @@ if (document.getElementById('mainItemSelect')) {
     localStorage.setItem('lastMainItem', this.value);
     loadSubItemsList(this.value);
     document.getElementById('itemQuantity').value = '';
+    // Reset تفاصيل الموارد table and hide result section
+    document.getElementById('resultTableBody').innerHTML = '';
+    document.getElementById('resultSection').classList.add('hidden');
   });
 }
 if (document.getElementById('itemSelect')) {
   document.getElementById('itemSelect').addEventListener('change', function() {
     localStorage.setItem('lastSubItem', this.value);
     document.getElementById('itemQuantity').value = '';
+    // Reset تفاصيل الموارد table and hide result section
+    document.getElementById('resultTableBody').innerHTML = '';
+    document.getElementById('resultSection').classList.add('hidden');
   });
 }
 
