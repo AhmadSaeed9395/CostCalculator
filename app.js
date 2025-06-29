@@ -339,6 +339,14 @@ createProjectBtn.addEventListener("click", () => {
   updateSections();
   loadProjectPrices(name);
   newProjectName.value = "";
+  // Reset main and sub item selects
+  const mainItemSelect = document.getElementById('mainItemSelect');
+  const itemSelect = document.getElementById('itemSelect');
+  if (mainItemSelect) mainItemSelect.value = '';
+  if (itemSelect) {
+    itemSelect.innerHTML = '<option value="">-- اختر --</option>';
+    itemSelect.disabled = true;
+  }
   showToast("تم إنشاء المشروع", 'success');
 });
 
