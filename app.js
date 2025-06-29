@@ -197,7 +197,7 @@ function loadSavedItems() {
   // عرض التكاليف مقسمة حسب الفئة
   document.getElementById("projectTotal").innerHTML = `
     <details style="margin-bottom: 25px; background: #232323; border-radius: 8px; border: 1.5px solid #444;">
-      <summary style="color: #e6a200; margin-bottom: 12px; padding: 14px 18px; background: #2d2d2d; border-radius: 8px; border-right: 4px solid #e6a200; font-size: 1.15em; font-weight: bold; cursor: pointer; outline: none; user-select: none;">ملخص تكاليف المشروع</summary>
+      <summary style="color: #e6a200; margin-bottom: 12px; padding: 14px 18px; background: #2d2d2d; border-radius: 8px; border-right: 4px solid #444; font-size: 1.15em; font-weight: bold; cursor: pointer; outline: none; user-select: none;">ملخص تكاليف المشروع</summary>
       <div style="padding: 0 18px 12px 18px;">
         <table style="width: 100%; border-collapse: collapse; background: #232323; border-radius: 8px; overflow: hidden; margin-bottom: 10px;">
           <thead>
@@ -253,8 +253,9 @@ window.removeSavedItem = function(idx) {
   const item = saved[idx];
   saved.splice(idx, 1);
   localStorage.setItem(key, JSON.stringify(saved));
+  // Always update both the saved items table and the resources summary
   loadSavedItems();
-  showToast('تم حذف البند <button id="undoBtn" style="margin-right:10px;">تراجع</button>', 'success');
+  showToast('تم حذف البند', 'success');
   setTimeout(() => {
     const undoBtn = document.getElementById('undoBtn');
     if (undoBtn) undoBtn.onclick = undoDelete;
@@ -347,7 +348,8 @@ function loadProjectPrices(projectName) {
     const input = document.createElement("input");
     input.type = "number";
     input.min = 0;
-    input.value = prices[resource] || 0;
+    const val = prices[resource];
+    input.value = (val && val !== 0) ? val : '';
     input.dataset.resource = resource;
     priceCell.appendChild(input);
     tr.appendChild(nameCell);
@@ -446,10 +448,13 @@ function renderCalculationTable(filtered, quantity, projectPrices) {
     tbody.appendChild(row);
   });
 
-  document.getElementById("totalCost").textContent = `الإجمالي: ${total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+  document.getElementById("totalCost").textContent = `${total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
   document.getElementById("resultSection").classList.remove("hidden");
   warningDiv.textContent = '';
   if (missing) showToast('⚠️ يوجد مورد أو أكثر بدون سعر! الرجاء مراجعة الأسعار.', 'warning');
+
+  // Update the sticky summary label
+  document.querySelector('.sticky-summary').innerHTML = `<strong>التكلفة الإجمالية :</strong> <span id="totalCost">${total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span> جنيه`;
 }
 
 // Helper to get default rate for a resource in the current item
@@ -478,48 +483,24 @@ resultTableBody.addEventListener("click", function(e) {
 
 // تحديث عند الضغط على حساب التكلفة
 const warningDiv = document.getElementById('calcWarning') || (() => { const d = document.createElement('div'); d.id = 'calcWarning'; d.style.color = 'red'; d.style.fontWeight = 'bold'; document.getElementById('resultSection').prepend(d); return d; })();
-document.getElementById("calculateBtn").addEventListener("click", () => {
+
+function tryInstantCalculation() {
   const itemName = document.getElementById("itemSelect").value;
   const quantity = parseFloat(document.getElementById("itemQuantity").value);
   const projectName = document.getElementById("projectSelect").value;
-
   if (!itemName || isNaN(quantity) || quantity <= 0) {
-    showToast("يرجى اختيار بند وإدخال كمية صحيحة", 'error');
+    // Optionally, you can clear the result section here
     return;
   }
-
   const projectPrices = JSON.parse(localStorage.getItem(`project_${projectName}`)) || {};
   tempRates = getCurrentItemRates(itemName); // نسخة مؤقتة
   renderCalculationTable(tempRates, quantity, projectPrices);
   document.getElementById('resetRatesBtn').classList.add('hidden');
-});
+}
 
-// دعم التعديل على معدل الفرد
-resultTableBody.addEventListener("input", function(e) {
-  if (e.target.classList.contains("rateInput")) {
-    const idx = +e.target.dataset.idx;
-    const newVal = parseFloat(e.target.value) || 0;
-    if (tempRates && tempRates[idx]) {
-      tempRates[idx].quantityPerUnit = newVal;
-      const itemName = document.getElementById("itemSelect").value;
-      const quantity = parseFloat(document.getElementById("itemQuantity").value);
-      const projectName = document.getElementById("projectSelect").value;
-      const projectPrices = JSON.parse(localStorage.getItem(`project_${projectName}`)) || {};
-      renderCalculationTable(tempRates, quantity, projectPrices);
-      document.getElementById('resetRatesBtn').classList.remove('hidden');
-    }
-  }
-});
-
-document.getElementById('resetRatesBtn').addEventListener('click', function() {
-  const itemName = document.getElementById("itemSelect").value;
-  const quantity = parseFloat(document.getElementById("itemQuantity").value);
-  const projectName = document.getElementById("projectSelect").value;
-  const projectPrices = JSON.parse(localStorage.getItem(`project_${projectName}`)) || {};
-  tempRates = getCurrentItemRates(itemName); // إعادة القيم الأصلية
-  renderCalculationTable(tempRates, quantity, projectPrices);
-  this.classList.add('hidden');
-});
+document.getElementById('itemQuantity').addEventListener('input', tryInstantCalculation);
+document.getElementById('mainItemSelect').addEventListener('change', tryInstantCalculation);
+document.getElementById('itemSelect').addEventListener('change', tryInstantCalculation);
 
 // البنود الرئيسية
 const mainItemsMap = {
@@ -743,11 +724,13 @@ if (document.getElementById('mainItemSelect')) {
   document.getElementById('mainItemSelect').addEventListener('change', function() {
     localStorage.setItem('lastMainItem', this.value);
     loadSubItemsList(this.value);
+    document.getElementById('itemQuantity').value = '';
   });
 }
 if (document.getElementById('itemSelect')) {
   document.getElementById('itemSelect').addEventListener('change', function() {
     localStorage.setItem('lastSubItem', this.value);
+    document.getElementById('itemQuantity').value = '';
   });
 }
 
