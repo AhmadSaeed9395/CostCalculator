@@ -121,9 +121,16 @@ function loadSavedItems() {
       <td>${item.quantity}</td>
       <td>${item.cost.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</td>
       <td><button onclick="removeSavedItem(${idx})">حذف</button></td>
-      <td><button class="editSavedItemBtn" data-idx="${idx}">تعديل</button></td>
+      <td><button class="expandDetailsBtn" data-idx="${idx}" title="تعديل"><span style="font-size:1.2em;">✏️</span></button></td>
     `;
     tbody.appendChild(tr);
+
+    // إضافة صف التفاصيل (سيتم إظهاره عند الضغط على الزر)
+    const detailsTr = document.createElement("tr");
+    detailsTr.classList.add("details-row");
+    detailsTr.style.display = "none";
+    detailsTr.innerHTML = `<td colspan="5"><div class="details-content" id="details-content-${idx}"></div></td>`;
+    tbody.appendChild(detailsTr);
   });
   
   // إنشاء جدول تفاصيل الخامات المستخدمة
@@ -255,16 +262,21 @@ function loadSavedItems() {
   // Always show the savedItemsSection so the undo button remains visible
   document.getElementById("savedItemsSection").classList.remove("hidden");
 
-  // إضافة مستمعات التعديل
-  tbody.querySelectorAll('.editSavedItemBtn').forEach(btn => {
+  // إضافة مستمعات زر التفاصيل
+  tbody.querySelectorAll('.expandDetailsBtn').forEach(btn => {
     btn.addEventListener('click', function() {
       const idx = +this.dataset.idx;
-      const item = saved[idx];
-      // تحميل البند في قسم الحساب
-      document.getElementById("itemSelect").value = item.item;
-      document.getElementById("itemQuantity").value = item.quantity;
-      document.getElementById("itemCalcSection").scrollIntoView({behavior: 'smooth'});
-      document.getElementById("calculateBtn").click();
+      const detailsRow = tbody.querySelectorAll('.details-row')[idx];
+      const detailsDiv = document.getElementById(`details-content-${idx}`);
+      // إظهار أو إخفاء التفاصيل
+      if (detailsRow.style.display === "none") {
+        renderSimpleResourceTableForSavedItem(saved[idx], idx, detailsDiv);
+        detailsRow.style.display = "table-row";
+        this.innerHTML = '<span style="font-size:1.2em;">❌</span>';
+      } else {
+        detailsRow.style.display = "none";
+        this.innerHTML = '<span style="font-size:1.2em;">✏️</span>';
+      }
     });
   });
 }
@@ -1001,3 +1013,98 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 });
+
+// دالة رسم جدول الموارد المبسط داخل تفاصيل البند
+function renderSimpleResourceTableForSavedItem(item, idx, container) {
+  // الحصول على الموارد الخاصة بالبند
+  const itemResources = itemsList.filter(i => i.item === item.item);
+  const projectName = document.getElementById("projectSelect").value;
+  const projectPrices = JSON.parse(localStorage.getItem(`project_${projectName}`)) || {};
+  let html = `<table class="compact-table" style="width:100%; margin:10px 0; background:#232323; border-radius:8px;">
+    <thead>
+      <tr style="background:#444; color:#e6a200;">
+        <th>المورد</th>
+        <th>الوحدة</th>
+        <th>معدل الفرد</th>
+        <th>الكمية المطلوبة</th>
+        <th>السعر</th>
+        <th>التكلفة</th>
+      </tr>
+    </thead>
+    <tbody>`;
+  itemResources.forEach((res, i) => {
+    const unitPrice = parseFloat(projectPrices[res.resource]) || 0;
+    const totalQty = res.quantityPerUnit * item.quantity;
+    const cost = totalQty * unitPrice;
+    html += `<tr>
+      <td>${res.resource}</td>
+      <td>${res.unit}</td>
+      <td><input type="number" min="0" step="any" value="${res.quantityPerUnit}" data-idx="${i}" class="editRateInput" style="width:80px"></td>
+      <td>${totalQty.toFixed(2)}</td>
+      <td>${unitPrice.toLocaleString()}</td>
+      <td>${cost.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  // زر معدلات الفرد الافتراضية
+  html += `<button id="reset-default-rates-${idx}" style="margin-bottom:10px;">معدلات الفرد الافتراضية</button>`;
+  // حقل تعديل الكمية وزر حفظ التعديل
+  html += `<div style="margin:10px 0;">
+    <label>الكمية: <input type="number" min="0" step="any" value="${item.quantity}" id="edit-qty-${idx}" style="width:90px"></label>
+    <button id="save-edit-btn-${idx}" style="margin-right:20px;">حفظ التعديل</button>
+  </div>`;
+  container.innerHTML = html;
+
+  // منطق زر معدلات الفرد الافتراضية
+  document.getElementById(`reset-default-rates-${idx}`).onclick = function() {
+    const defaultRates = itemsList.filter(i => i.item === item.item).map(obj => obj.quantityPerUnit);
+    container.querySelectorAll('.editRateInput').forEach((input, i) => {
+      input.value = defaultRates[i] || 0;
+    });
+  };
+
+  // إضافة منطق حفظ التعديل
+  document.getElementById(`save-edit-btn-${idx}`).onclick = function() {
+    const projectName = document.getElementById("projectSelect").value;
+    const key = `items_${projectName}`;
+    const saved = JSON.parse(localStorage.getItem(key)) || [];
+    // قراءة الكمية الجديدة
+    const newQty = parseFloat(document.getElementById(`edit-qty-${idx}`).value) || 0;
+    // قراءة معدلات الفرد الجديدة
+    const newRates = [];
+    const itemResources = itemsList.filter(i => i.item === item.item);
+    container.querySelectorAll('.editRateInput').forEach((input, i) => {
+      const val = parseFloat(input.value) || 0;
+      newRates[i] = val;
+    });
+    // تحديث معدلات الفرد في itemResources
+    itemResources.forEach((res, i) => {
+      res.quantityPerUnit = newRates[i];
+    });
+    // إعادة حساب التكلفة
+    const projectPrices = JSON.parse(localStorage.getItem(`project_${projectName}`)) || {};
+    let newCost = 0;
+    itemResources.forEach(res => {
+      const unitPrice = parseFloat(projectPrices[res.resource]) || 0;
+      const totalQty = res.quantityPerUnit * newQty;
+      newCost += totalQty * unitPrice;
+    });
+    // تحديث البند في مكانه
+    saved[idx] = {
+      item: item.item,
+      quantity: newQty,
+      cost: newCost
+    };
+    localStorage.setItem(key, JSON.stringify(saved));
+    loadSavedItems();
+    // إغلاق التفاصيل بعد الحفظ
+    const tbody = container.closest('tbody');
+    if (tbody) {
+      const expandBtn = tbody.querySelector(`.expandDetailsBtn[data-idx="${idx}"]`);
+      const detailsRow = tbody.querySelectorAll('.details-row')[idx];
+      if (detailsRow) detailsRow.style.display = "none";
+      if (expandBtn) expandBtn.textContent = "⬇️";
+    }
+    showToast('تم حفظ التعديلات بنجاح', 'success');
+  };
+}
